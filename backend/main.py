@@ -73,3 +73,21 @@ def get_uploaded_session(session_id: str) -> dict:
 	if not session:
 		raise HTTPException(status_code=404, detail="Session not found")
 	return session_snapshot(session)
+
+@app.post("/configure-task")
+def configure_task(request: dict):
+    session_id = request.get("session_id")
+    task_type = request.get("task_type")
+    target = request.get("target")
+
+    try:
+        config = configure_task(session_id, task_type, target)
+        session = get_session(session_id)
+        return {
+            "message": "Configuration saved",
+            "configuration": config,
+            "columns": session["columns"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+

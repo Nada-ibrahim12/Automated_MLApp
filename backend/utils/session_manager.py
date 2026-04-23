@@ -43,3 +43,19 @@ def session_snapshot(session: dict) -> dict:
 		"configuration": session.get("configuration", {}),
 		"training": session.get("training", {}),
 	}
+
+
+def configure_task(session_id: str, task_type: str, target: str | None) -> dict:
+    session = get_session(session_id)
+    if not session:
+        raise KeyError("Session not found")
+
+    df = session["dataframe"]
+    if target and target not in df.columns:
+        raise ValueError(f"Column '{target}' does not exist in the dataset.")
+
+    session["configuration"] = {
+        "task_type": task_type,
+        "target": target
+    }
+    return session["configuration"]
