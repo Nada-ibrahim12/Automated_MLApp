@@ -1,17 +1,20 @@
-"""Minimal FastAPI backend used only to test the project structure."""
+"""FastAPI backend for uploading data and training a model."""
 
 from __future__ import annotations
 
 from io import BytesIO
 from pathlib import Path
-from uuid import uuid4
 
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
-app = FastAPI(title="ML AutoApp Structure Test")
+from backend.endpoints.download import router as download_router
+from backend.endpoints.train import router as train_router
+from backend.utils.session_manager import create_session, get_session, session_snapshot
 
-SESSIONS: dict[str, dict] = {}
+app = FastAPI(title="Automated ML App")
+app.include_router(train_router)
+app.include_router(download_router)
 
 
 @app.get("/")
@@ -25,9 +28,25 @@ def _read_dataframe(file: UploadFile) -> pd.DataFrame:
 
 	if extension == ".csv":
 		return pd.read_csv(BytesIO(raw_bytes))
+	if extension in {".tsv", ".txt"}:
+		return pd.read_csv(BytesIO(raw_bytes), sep="\t")
+	if extension == ".json":
+		return pd.read_json(BytesIO(raw_bytes))
 	if extension == ".xlsx":
 		return pd.read_excel(BytesIO(raw_bytes), engine="openpyxl")
-	raise HTTPException(status_code=400, detail="Only .csv and .xlsx files are supported")
+	if extension == ".xls":
+		try:
+			return pd.read_excel(BytesIO(raw_bytes))
+		except ImportError as exc:
+			raise HTTPException(
+				status_code=400,
+				detail=".xls requires an additional Excel engine. Install 'xlrd' to enable this format.",
+			) from exc
+
+	raise HTTPException(
+		status_code=400,
+		detail="Unsupported file type. Supported extensions: .csv, .tsv, .txt, .json, .xlsx, .xls",
+	)
 
 
 @app.post("/upload")
@@ -36,15 +55,8 @@ def upload_dataset(file: UploadFile = File(...)) -> dict:
 	if df.empty:
 		raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
-	session_id = str(uuid4())
+	session_id = create_session(filename=file.filename or "uploaded_file", dataframe=df)
 	preview = df.head(5).fillna("").to_dict(orient="records")
-
-	SESSIONS[session_id] = {
-		"filename": file.filename,
-		"rows": len(df),
-		"columns": df.columns.tolist(),
-		"preview": preview,
-	}
 
 	return {
 		"session_id": session_id,
@@ -56,8 +68,8 @@ def upload_dataset(file: UploadFile = File(...)) -> dict:
 
 
 @app.get("/session/{session_id}")
-def get_session(session_id: str) -> dict:
-	session = SESSIONS.get(session_id)
+def get_uploaded_session(session_id: str) -> dict:
+	session = get_session(session_id)
 	if not session:
 		raise HTTPException(status_code=404, detail="Session not found")
-	return session
+	return session_snapshot(session)

@@ -4,3 +4,4 @@ __pycache__/
 backend/models_saved/
 data/
 venv/
+.vscode/
