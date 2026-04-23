@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import requests
@@ -40,6 +41,18 @@ def _handle_response(response: requests.Response) -> dict[str, Any]:
 		raise APIClientError("Backend returned a non-JSON response") from exc
 
 
+def _json_safe_value(value: Any) -> Any:
+	if isinstance(value, dict):
+		return {key: _json_safe_value(inner_value) for key, inner_value in value.items()}
+	if isinstance(value, list):
+		return [_json_safe_value(item) for item in value]
+	if isinstance(value, tuple):
+		return [_json_safe_value(item) for item in value]
+	if isinstance(value, float) and math.isnan(value):
+		return None
+	return value
+
+
 def health_check(backend_url: str, timeout: int = 10) -> dict[str, Any]:
 	response = requests.get(f"{normalize_backend_url(backend_url)}/", timeout=timeout)
 	return _handle_response(response)
@@ -78,7 +91,7 @@ def train_model(
 	timeout: int = 120,
 ) -> dict[str, Any]:
 	payload: dict[str, Any] = {
-		"data": data_records,
+		"data": _json_safe_value(data_records),
 		"task_type": task_type,
 		"n_clusters": int(n_clusters),
 	}
