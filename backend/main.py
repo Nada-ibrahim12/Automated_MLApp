@@ -10,7 +10,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from backend.endpoints.download import router as download_router
 from backend.endpoints.train import router as train_router
-from backend.utils.session_manager import create_session, get_session, session_snapshot
+from backend.utils.session_manager import create_session, get_session, session_snapshot, configure_task_logic
 
 app = FastAPI(title="Automated ML App")
 app.include_router(train_router)
@@ -81,7 +81,7 @@ def configure_task(request: dict):
     target = request.get("target")
 
     try:
-        config = configure_task(session_id, task_type, target)
+        config = configure_task_logic(session_id, task_type, target)
         session = get_session(session_id)
         return {
             "message": "Configuration saved",

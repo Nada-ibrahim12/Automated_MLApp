@@ -17,14 +17,28 @@ if not has_dataset():
 	st.stop()
 
 st.write(f"Session: {st.session_state.session_id}")
-st.write(f"Task: {st.session_state.task_type}")
+# st.write(f"Task: {st.session_state.task_type}")
+config = st.session_state.get("backend_config")
+if config is not None:
+    st.write(f"Task: {config.get('task_type')}")
+else:
+    st.error("No config returned from session.")
+
 if st.session_state.task_type in {"classification", "regression"}:
-	st.write(f"Target: {st.session_state.target}")
+	if config:
+		st.write(f"Target: {config.get('target')}")
+	else:
+		st.error("No configuration found. Please configure task first.")
+		st.stop()
+	# st.write(f"Target: {st.session_state.target}")
 else:
 	st.write(f"n_clusters: {st.session_state.n_clusters}")
 
 if st.button("Start Training", type="primary"):
 	try:
+		if not st.session_state.get("backend_config"):
+			st.warning("Please save configuration to backend first.")
+			st.stop()
 		session_payload = {}
 		preview = []
 		with st.spinner("Checking backend session..."):
@@ -37,9 +51,11 @@ if st.button("Start Training", type="primary"):
 				if preview:
 					st.info("Session data is accessible from backend.")
 			except APIClientError as exc:
-				st.warning(
-					f"Backend session is unavailable ({exc}). Continuing with local uploaded data."
-				)
+				st.error("Backend session is unavailable. Please re-upload your dataset.")
+				st.stop()
+				# st.warning(
+				# 	f"Backend session is unavailable ({exc}). Continuing with local uploaded data."
+				# )
 
 		records = st.session_state.get("data_records") or preview
 		if not records:

@@ -45,7 +45,7 @@ def session_snapshot(session: dict) -> dict:
 	}
 
 
-def configure_task(session_id: str, task_type: str, target: str | None) -> dict:
+def configure_task_logic(session_id: str, task_type: str, target: str | None) -> dict:
     session = get_session(session_id)
     if not session:
         raise KeyError("Session not found")

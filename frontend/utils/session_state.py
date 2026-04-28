@@ -17,6 +17,7 @@ DEFAULT_STATE = {
 	"training_result": None,
 	"model_artifact_bytes": None,
 	"model_artifact_name": "trained_model.pkl",
+	"backend_config": None,
 }
 
 

@@ -4,7 +4,7 @@ import math
 from typing import Any
 
 import requests
-
+import streamlit as st
 
 DEFAULT_BACKEND_URL = "http://127.0.0.1:8000"
 
@@ -71,6 +71,29 @@ def upload_file(
 		files=files,
 		timeout=timeout,
 	)
+	return _handle_response(response)
+
+
+def configure_task(
+	backend_url: str,
+	session_id: str,
+	task_type: str,
+	target: str | None,
+	timeout: int = 15,
+) -> dict[str, Any]:
+	payload = {
+		"session_id": session_id,
+		"task_type": task_type,
+		"target": target,
+	}
+
+	response = requests.post(
+		f"{normalize_backend_url(backend_url)}/configure-task",
+		json=payload,
+		timeout=timeout,
+	)
+
+
 	return _handle_response(response)
 
 
