@@ -39,8 +39,8 @@ def train_model(request: dict):
             X_test = X_test,
             y_train = y_train,
             y_test = y_test,
-            n_clusters = request.get("n_clusters", 3),
             feature_names = list(X_train.columns),
+            original_df=df 
         )
     except ValueError as exc:
         return {"error": str(exc)}
@@ -55,11 +55,12 @@ def train_model(request: dict):
     )
 
     return {
-        "best_model_name": result["best_model_name"],
-        "best_model": result["best_model"].__class__.__name__,
-        "best_metrics": result["best_metrics"],
-        "metrics": result["best_metrics"],
-        "model_runs": result["model_runs"],
-        "preprocessing_report": preprocessing_report,
-        "message": "Training completed successfully"
-    }
+    "best_model_name": result["best_model_name"],
+    "best_model": result["best_model"].__class__.__name__,
+    "best_metrics": result["best_metrics"],
+    "metrics": result["best_metrics"],
+    "model_runs": result["model_runs"],
+    "cluster_descriptions": result.get("cluster_descriptions", {}),
+    "preprocessing_report": preprocessing_report,
+    "message": "Training completed successfully"
+}

@@ -31,8 +31,8 @@ if st.session_state.task_type in {"classification", "regression"}:
 		st.error("No configuration found. Please configure task first.")
 		st.stop()
 	# st.write(f"Target: {st.session_state.target}")
-else:
-	st.write(f"n_clusters: {st.session_state.n_clusters}")
+# else:
+# 	st.write(f"n_clusters: {st.session_state.n_clusters}")
 
 if st.button("Start Training", type="primary"):
 	try:

@@ -29,10 +29,10 @@ if task_type in {"classification", "regression"}:
 	default_target = st.session_state.target if st.session_state.target in st.session_state.columns else None
 	target_index = st.session_state.columns.index(default_target) if default_target in st.session_state.columns else 0
 	st.session_state.target = st.selectbox("Target column", options=st.session_state.columns, index=target_index)
-	st.session_state.n_clusters = 3
-else:
-	st.session_state.target = None
-	st.session_state.n_clusters = st.slider("Number of clusters", min_value=2, max_value=10, value=int(st.session_state.n_clusters))
+	#st.session_state.n_clusters = 3
+# else:
+# 	st.session_state.target = None
+# 	st.session_state.n_clusters = st.slider("Number of clusters", min_value=2, max_value=10, value=int(st.session_state.n_clusters))
 
 # st.subheader("Current Configuration")
 # config_preview = {
