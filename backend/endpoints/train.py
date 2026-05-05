@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 import pandas as pd
 
-from backend.pipelines.preprocessing import build_preprocessing_pipeline, preprocess_data
+from backend.pipelines.preprocessing import preprocess_data
 from backend.models.model_selector import select_and_train_model
 from backend.utils.serializer import save_model
 
@@ -31,7 +31,12 @@ def train_model(request: dict):
         target = None  
         
     try:
-        X_train, X_test, y_train, y_test, preprocessing_report = preprocess_data(df, target, task_type=task_type)
+        X_train, X_test, y_train, y_test, preprocessing_report, preprocessing_pipeline = preprocess_data(
+            df,
+            target,
+            task_type=task_type,
+            return_preprocessor=True,
+        )
 
         result = select_and_train_model(
             task_type = task_type,
@@ -45,7 +50,6 @@ def train_model(request: dict):
     except ValueError as exc:
         return {"error": str(exc)}
 
-    preprocessing_pipeline = build_preprocessing_pipeline(df, target)
     save_model(
         {
             "model": result["best_model"],

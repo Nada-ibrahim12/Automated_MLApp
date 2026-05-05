@@ -143,14 +143,24 @@ def _build_scaling_report(features: pd.DataFrame) -> dict:
 	}
 
 # actual preprocessing
-def preprocess_data(df: pd.DataFrame, target: str | None = None, task_type: str | None = None):
+def preprocess_data(
+	df: pd.DataFrame,
+	target: str | None = None,
+	task_type: str | None = None,
+	return_preprocessor: bool = False,
+):
 	preprocessor = FeaturePreprocessor()
-	features = preprocessor._get_features(df, target)
-	imputation_report = _build_imputation_report(features)
 
 	if target is None:
+		features = preprocessor._get_features(df, target)
+		imputation_report = _build_imputation_report(features)
 		X = preprocessor.fit_transform(df, target)
-		return X, X, None, None, {
+		result = (
+			X,
+			X,
+			None,
+			None,
+			{
 			"imputation": imputation_report,
 			"encoding": _build_encoding_report(features, list(X.columns)),
 			"scaling": _build_scaling_report(features),
@@ -158,18 +168,28 @@ def preprocess_data(df: pd.DataFrame, target: str | None = None, task_type: str 
 				"applied": False,
 				"reason": "No target column provided for resampling.",
 			},
-		}
+			},
+		)
+		if return_preprocessor:
+			return result + (preprocessor,)
+		return result
 
 	if target not in df.columns:
 		raise ValueError(f"Target column '{target}' not found in dataframe")
 
-	X = preprocessor.fit_transform(df, target)
+	features = preprocessor._get_features(df, target)
 	y = df[target]
 
 	stratify_target = y if task_type == "classification" and y.nunique() > 1 else None
-	X_train, X_test, y_train, y_test = train_test_split(
-		X, y, test_size=0.2, random_state=42, stratify=stratify_target
+	X_train_raw, X_test_raw, y_train, y_test = train_test_split(
+		features, y, test_size=0.2, random_state=42, stratify=stratify_target
 	)
+
+	preprocessor.fit(X_train_raw)
+	X_train = preprocessor.transform(X_train_raw)
+	X_test = preprocessor.transform(X_test_raw)
+
+	imputation_report = _build_imputation_report(X_train_raw)
 
 	class_distribution_before = y_train.value_counts(dropna=False).to_dict() if task_type == "classification" else {}
 	if task_type == "classification":
@@ -179,8 +199,8 @@ def preprocess_data(df: pd.DataFrame, target: str | None = None, task_type: str 
 	resampling_applied = bool(class_distribution_before and class_distribution_before != class_distribution_after)
 	preprocessing_report = {
 		"imputation": imputation_report,
-		"encoding": _build_encoding_report(features, list(X.columns)),
-		"scaling": _build_scaling_report(features),
+		"encoding": _build_encoding_report(X_train_raw, list(X_train.columns)),
+		"scaling": _build_scaling_report(X_train_raw),
 		"resampling": {
 			"applied": resampling_applied,
 			"technique": "random_oversampling" if resampling_applied else None,
@@ -189,7 +209,10 @@ def preprocess_data(df: pd.DataFrame, target: str | None = None, task_type: str 
 		},
 	}
 
-	return X_train, X_test, y_train, y_test, preprocessing_report
+	result = (X_train, X_test, y_train, y_test, preprocessing_report)
+	if return_preprocessor:
+		return result + (preprocessor,)
+	return result
 
 
 def build_preprocessing_pipeline(df: pd.DataFrame, target: str | None = None) -> FeaturePreprocessor:
